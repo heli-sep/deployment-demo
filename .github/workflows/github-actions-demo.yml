@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: Verify Admin Access
         run: |
-          ALLOWED_USERS=("admin-user1" "admin-user2","heli-sep")
+          ALLOWED_USERS=("admin-user1","admin-user2","heli-sep")
           if [[ ! " ${ALLOWED_USERS[@]} " =~ " ${{ github.actor }} " ]]; then
             echo "❌ Unauthorized user: ${{ github.actor }}. Only Admins can deploy to Production."
             exit 1
