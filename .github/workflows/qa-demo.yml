@@ -1,0 +1,32 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - qa
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy (for Dev or Prod manual deployment)"
+        required: true
+        default: "dev"
+
+env:
+  REGION: "us-east-1"
+
+jobs:
+  deploy-to-qa:
+    runs-on: ubuntu-latest
+      #if: github.event_name == 'push' && github.ref == 'refs/heads/qa'
+    if: (github.ref == 'refs/heads/qa' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'qa')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (QA)
+        run: echo "🔧 Configuring AWS credentials for QA environment..."
+
+      - name: Deploy to QA
+        run: echo "🚀 Deploying QA branch to QA environment"
+
+
