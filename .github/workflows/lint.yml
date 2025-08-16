@@ -1,0 +1,24 @@
+name: Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+      - prod
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    container: golangci/golangci-lint:v2.1-alpine
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Copy default .golangci.yml if missing
+        run: |
+          if [ ! -f .golangci.yml ]; then
+            cp /golangci/.golangci.yml .
+          fi
+
+      - name: Run golangci-lint
+        run: golangci-lint run --issues-exit-code 1 --timeout=5m
