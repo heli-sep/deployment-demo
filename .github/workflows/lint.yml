@@ -14,4 +14,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run a dummy lint
-        run: echo "Lint check passed ✅"
+        run: echo "Lint check passed test ✅"
