@@ -20,7 +20,7 @@ env:
   ECR_REPO: 567630311114.dkr.ecr.ap-southeast-1.amazonaws.com/helicap-test-repo
   DEV_ASSUME_ROLE_ARN: arn:aws:iam::615908245893:role/helicap-github-deployment-dev
   DEV_ECS_CLUSTER_NAME: helicap-dev
-  DEV_ECS_SERVICE_NAME: helicap-dev-api-analytics
+  DEV_ECS_SERVICE_NAME: Deployment-Test
   GITHUB_ACTIONS_ROLE_ARN: arn:aws:iam::567630311114:role/Gitlab-test-oidc
 
 jobs:
@@ -64,8 +64,14 @@ jobs:
       - name: List ECS Clusters and Services
         run: |
           echo "Listing ECS clusters in dev account..."
-          aws ecs list-clusters --region "${REGION}" || { echo "Failed to list clusters"; exit 1; }
-          echo "Listing services in cluster ${DEV_ECS_CLUSTER_NAME}..."
-          aws ecs list-services --cluster "${DEV_ECS_CLUSTER_NAME}" --region "${REGION}" || { echo "Failed to list services"; exit 1; }
-          echo "Describing service ${DEV_ECS_SERVICE_NAME} in cluster ${DEV_ECS_CLUSTER_NAME}..."
-          aws ecs describe-services --cluster "${DEV_ECS_CLUSTER_NAME}" --services "${DEV_ECS_SERVICE_NAME}" --region "${REGION}" || { echo "Failed to describe service"; exit 1; }
+          IMAGE_TAG=$(git rev-parse --short HEAD)
+          DEV_ECS_TD=$(aws ecs describe-services --cluster "${DEV_ECS_CLUSTER_NAME}" --services "${DEV_ECS_SERVICE_NAME}" --region "${REGION}" | python3 -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["services"][0]["taskDefinition"])') || { echo "Failed to get service"; exit 1; }
+          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$DEV_ECS_TD" --region "${REGION}") || { echo "Failed to get task definition"; exit 1; }
+          NEW_CONTAINER_DEFINITION=$(echo $TASK_DEFINITION | jq --arg IMAGE "$ECR_REPO:$IMAGE_TAG" '.taskDefinition.containerDefinitions[0].image = $IMAGE | .taskDefinition.containerDefinitions[0]')
+          PREV_TASK_DEF=$DEV_ECS_TD
+          DEV_ECS_TD_NEW=$(aws ecs register-task-definition --region "${REGION}" --family "${DEV_ECS_TD_NAME}" --container-definitions "${NEW_CONTAINER_DEFINITION}" --task-role-arn "${DEV_TASK_ROLE_ARN}" --execution-role-arn "${DEV_TASK_ROLE_ARN}" | pythonго -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["taskDefinition"]["taskDefinitionArn"])') || { echo "Failed to register task definition"; exit 1; }
+          aws ecs update-service --region "${REGION}" --cluster "${DEV_ECS_CLUSTER_NAME}" --service "${DEV_ECS_SERVICE_NAME}" --task-definition "${DEV_ECS_TD_NEW}" || {
+            echo "Deployment failed, reverting to $PREV_TASK_DEF"
+            aws ecs update-service --region "${REGION}" --cluster "${DEV_ECS_CLUSTER_NAME}" --service "${DEV_ECS_SERVICE_NAME}" --task-definition "${PREV_TASK_DEF}"
+            exit 1
+          }
