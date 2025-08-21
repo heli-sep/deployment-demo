@@ -20,9 +20,9 @@ env:
   ECR_REPO: 567630311114.dkr.ecr.ap-southeast-1.amazonaws.com/helicap-test-repo
   DEV_ASSUME_ROLE_ARN: arn:aws:iam::615908245893:role/helicap-github-deployment-dev
   DEV_ECS_CLUSTER_NAME: helicap-dev
-  DEV_ECS_SERVICE_NAME: deploy-test
+  DEV_ECS_SERVICE_NAME: Deployment-Test
   DEV_TASK_ROLE_ARN: arn:aws:iam::615908245893:role/helicap-dev-analytics-task-role
-  DEV_ECS_TD_NAME: deployment-test-td
+  DEV_ECS_TD_NAME: deploy-test
   GITHUB_ACTIONS_ROLE_ARN: arn:aws:iam::567630311114:role/Gitlab-test-oidc
 
 jobs:
