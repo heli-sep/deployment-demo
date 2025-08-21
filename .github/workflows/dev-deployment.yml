@@ -71,7 +71,7 @@ jobs:
           TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$DEV_ECS_TD" --region "${REGION}") || { echo "Failed to get task definition"; exit 1; }
           NEW_CONTAINER_DEFINITION=$(echo $TASK_DEFINITION | jq --arg IMAGE "$ECR_REPO:$IMAGE_TAG" '.taskDefinition.containerDefinitions[0].image = $IMAGE | .taskDefinition.containerDefinitions[0]')
           PREV_TASK_DEF=$DEV_ECS_TD
-          DEV_ECS_TD_NEW=$(aws ecs register-task-definition --region "${REGION}" --family "${DEV_ECS_TD_NAME}" --container-definitions "${NEW_CONTAINER_DEFINITION}" --task-role-arn "${DEV_TASK_ROLE_ARN}" --execution-role-arn "${DEV_TASK_ROLE_ARN}" | python3-c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["taskDefinition"]["taskDefinitionArn"])') || { echo "Failed to register task definition"; exit 1; }
+          DEV_ECS_TD_NEW=$(aws ecs register-task-definition --region "${REGION}" --family "${DEV_ECS_TD_NAME}" --container-definitions "${NEW_CONTAINER_DEFINITION}" --task-role-arn "${DEV_TASK_ROLE_ARN}" --execution-role-arn "${DEV_TASK_ROLE_ARN}" | python3 -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["taskDefinition"]["taskDefinitionArn"])') || { echo "Failed to register task definition"; exit 1; }
           aws ecs update-service --region "${REGION}" --cluster "${DEV_ECS_CLUSTER_NAME}" --service "${DEV_ECS_SERVICE_NAME}" --task-definition "${DEV_ECS_TD_NEW}" || {
             echo "Deployment failed, reverting to $PREV_TASK_DEF"
             aws ecs update-service --region "${REGION}" --cluster "${DEV_ECS_CLUSTER_NAME}" --service "${DEV_ECS_SERVICE_NAME}" --task-definition "${PREV_TASK_DEF}"
