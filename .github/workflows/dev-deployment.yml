@@ -18,7 +18,7 @@ permissions:
 env:
   REGION: ap-southeast-1
   ECR_REPO: 567630311114.dkr.ecr.ap-southeast-1.amazonaws.com/helicap-test-repo
-  DEV_ASSUME_ROLE_ARN: arn:aws:iam::12345:role/helicap-dev-deploy
+  DEV_ASSUME_ROLE_ARN: arn:aws:iam::615908245893:role/helicap-github-deployment-dev
   DEV_ECS_CLUSTER_NAME: helicap-dev
   DEV_ECS_SERVICE_NAME: helicap-dev-api-analytics
   GITHUB_ACTIONS_ROLE_ARN: arn:aws:iam::567630311114:role/Gitlab-test-oidc
