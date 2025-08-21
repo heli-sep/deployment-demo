@@ -30,6 +30,18 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
     steps:
+      - name: Verify Admin Access
+        run: |
+          ALLOWED_USERS=("test" "heli-sep")
+          authorized=false
+          for u in "${ALLOWED_USERS[@]}"; do
+            if [[ "$u" == "$GITHUB_ACTOR" ]]; then authorized=true; break; fi
+          done
+          if [[ $authorized != true ]]; then
+            echo "❌ Unauthorized user: $GITHUB_ACTOR. Only Admins can deploy to Production."
+            exit 1
+          fi
+          echo "✅ Admin verification passed."
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Configure AWS Credentials
@@ -56,6 +68,18 @@ jobs:
     needs: build
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
     steps:
+      - name: Verify Admin Access
+        run: |
+          ALLOWED_USERS=("test" "test2")
+          authorized=false
+          for u in "${ALLOWED_USERS[@]}"; do
+            if [[ "$u" == "$GITHUB_ACTOR" ]]; then authorized=true; break; fi
+          done
+          if [[ $authorized != true ]]; then
+            echo "❌ Unauthorized user: $GITHUB_ACTOR. Only Admins can deploy to Production."
+            exit 1
+          fi
+          echo "✅ Admin verification passed."
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Configure AWS Credentials
