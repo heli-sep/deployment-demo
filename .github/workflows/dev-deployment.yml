@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: Verify Admin Access
         run: |
-          ALLOWED_USERS=("test" "test2")
+          ALLOWED_USERS=("test" "heli-sep")
           authorized=false
           for u in "${ALLOWED_USERS[@]}"; do
             if [[ "$u" == "$GITHUB_ACTOR" ]]; then authorized=true; break; fi
