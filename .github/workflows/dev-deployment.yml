@@ -59,9 +59,9 @@ jobs:
           docker tag $ECR_REPO:latest $ECR_REPO:$IMAGE_TAG
           docker push $ECR_REPO:latest || { echo "Docker push failed"; exit 1; }
           docker push $ECR_REPO:$IMAGE_TAG || { echo "Docker push failed"; exit 1; }
-      - name: Clean up old ECR images
-        run: |
-          aws ecr batch-delete-image --repository-name $(echo $ECR_REPO | cut -d'/' -f2) --image-ids "$(aws ecr list-images --repository-name $(echo $ECR_REPO | cut -d'/' -f2) --filter tagStatus=UNTAGGED --query 'imageIds[*]' --output json)" || echo "No untagged images to delete"
+      # - name: Clean up old ECR images
+      #   run: |
+      #     aws ecr batch-delete-image --repository-name $(echo $ECR_REPO | cut -d'/' -f2) --image-ids "$(aws ecr list-images --repository-name $(echo $ECR_REPO | cut -d'/' -f2) --filter tagStatus=UNTAGGED --query 'imageIds[*]' --output json)" || echo "No untagged images to delete"
 
   deploy-dev:
     runs-on: ubuntu-latest
