@@ -1,0 +1,115 @@
+name: Generate JWKS and Upload to S3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGION: ap-south-1
+  S3_BUCKET: helicap-qa-analytics-ui
+  AWS_ROLE_TO_ASSUME : arn:aws:iam::615908245893:role/test-oidc
+  SIGN_KEY_ALIAS: alias/MyInfoSigningKey
+  ENC_KEY_ALIAS: alias/MyInfoEncryptionKey
+
+jobs:
+  generate-jwks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.REGION }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq openssl
+          npm install -g eckles
+
+      ########################################
+      # Generate Signing Public JWK
+      ########################################
+      - name: Generate Signing Public Key
+        run: |
+          aws kms get-public-key \
+            --key-id $SIGN_KEY_ALIAS \
+            --query PublicKey \
+            --output text | base64 --decode > sign.der
+
+          openssl ec -pubin -inform DER -in sign.der -out sign.pem
+          eckles sign.pem > sign_public.jwk
+
+      ########################################
+      # Generate Encryption Public JWK
+      ########################################
+      - name: Generate Encryption Public Key
+        run: |
+          aws kms get-public-key \
+            --key-id $ENC_KEY_ALIAS \
+            --query PublicKey \
+            --output text | base64 --decode > enc.der
+
+          openssl ec -pubin -inform DER -in enc.der -out enc.pem
+          eckles enc.pem > enc_public.jwk
+
+      ########################################
+      # Generate Signing Key Metadata
+      ########################################
+      - name: Generate Signing Metadata
+        run: |
+          sign_kid=$(jq -c '{kty,crv,x,y}' sign_public.jwk \
+            | openssl dgst -sha256 -binary \
+            | base64 | tr '+/' '-_' | tr -d '=')
+
+          jq --arg kid "$sign_kid" '. + {
+            use: "sig",
+            alg: "ES256",
+            kid: $kid
+          }' sign_public.jwk > sign_with_meta.jwk
+
+      ########################################
+      # Generate Encryption Key Metadata
+      ########################################
+      - name: Generate Encryption Metadata
+        run: |
+          enc_kid=$(jq -c '{kty,crv,x,y}' enc_public.jwk \
+            | openssl dgst -sha256 -binary \
+            | base64 | tr '+/' '-_' | tr -d '=')
+
+          jq --arg kid "$enc_kid" '. + {
+            use: "enc",
+            alg: "ECDH-ES+A256KW",
+            kid: $kid
+          }' enc_public.jwk > enc_with_meta.jwk
+
+      ########################################
+      # Combine into JWKS
+      ########################################
+      - name: Combine JWKS
+        run: |
+          jq -n '{ keys: [inputs] }' \
+            sign_with_meta.jwk \
+            enc_with_meta.jwk \
+            > jwks.json
+
+          cat jwks.json
+
+      ########################################
+      # Upload to S3
+      ########################################
+      - name: Upload JWKS to S3
+        run: |
+          aws s3 cp jwks.json s3://$S3_BUCKET/.well-known/jwks.json \
+            --content-type application/json \
+            --cache-control "max-age=300"
