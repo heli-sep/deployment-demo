@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  REGION: ap-south-1
+  REGION: ap-southeast-1
   S3_BUCKET: helicap-qa-analytics-ui
   AWS_ROLE_TO_ASSUME : arn:aws:iam::615908245893:role/test-oidc
   SIGN_KEY_ALIAS: alias/MyInfoSigningKey
